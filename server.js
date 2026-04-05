@@ -3,7 +3,7 @@ const fs   = require('fs');
 const path = require('path');
 const { randomBytes } = require('crypto');
 
-const PORT      = 3000;
+const PORT      = 8080;
 const ROOT      = __dirname;
 const DATA_FILE = path.join(ROOT, 'data.json');
 const UPLOADS   = path.join(ROOT, 'uploads');
