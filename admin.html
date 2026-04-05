@@ -1,1 +1,517 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#060f07">
+<title>Sharbat Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body {
+  font-family:'Outfit',sans-serif;
+  background:#060f07;
+  color:#f0ebe0;
+  min-height:100vh;
+  padding-bottom:60px;
+}
 
+/* HEADER */
+header {
+  position:sticky; top:0; z-index:100;
+  background:rgba(6,15,7,.93);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(255,255,255,.05);
+  padding:14px 18px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.h-left {}
+.h-logo {
+  font-family:'Cormorant Garamond',serif;
+  font-size:22px; letter-spacing:5px; color:#fff; font-weight:300;
+}
+.h-logo span { color:#c9a84c; }
+.h-sub {
+  font-size:8px; letter-spacing:3px; text-transform:uppercase;
+  color:rgba(82,183,136,.5); margin-top:1px;
+}
+.h-back {
+  display:flex; align-items:center; gap:7px;
+  font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
+  color:rgba(255,255,255,.3); text-decoration:none; font-weight:300;
+}
+.h-back-icon {
+  width:30px;height:30px; border-radius:50%;
+  background:rgba(255,255,255,.05);
+  display:flex;align-items:center;justify-content:center; font-size:15px;
+}
+
+/* TABS */
+.tabs {
+  display:flex; gap:0;
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.tab {
+  flex:1; padding:14px 8px;
+  border:none; background:transparent;
+  color:rgba(255,255,255,.28); font-size:11px; letter-spacing:2px;
+  text-transform:uppercase; font-family:'Outfit',sans-serif; font-weight:400;
+  cursor:pointer; border-bottom:2px solid transparent;
+  transition:all .3s;
+}
+.tab.active { color:#c9a84c; border-bottom-color:#c9a84c; }
+
+/* TAB PANES */
+.pane { display:none; }
+.pane.active { display:block; }
+
+/* FORM */
+.form { padding:22px 18px 0; }
+.f-title {
+  font-family:'Cormorant Garamond',serif;
+  font-size:26px; font-weight:300; color:#fff; margin-bottom:3px;
+}
+.f-sub { font-size:11px; color:rgba(255,255,255,.18); letter-spacing:.5px; margin-bottom:20px; }
+
+/* Photo zone */
+.photo-zone {
+  position:relative; width:100%; aspect-ratio:4/3;
+  border-radius:16px; border:2px dashed rgba(255,255,255,.07);
+  background:rgba(255,255,255,.02);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:10px;
+  overflow:hidden; margin-bottom:14px; transition:border-color .3s;
+}
+.photo-zone.filled { border-style:solid; border-color:rgba(82,183,136,.28); }
+.photo-zone input[type=file] {
+  position:absolute;inset:0; opacity:0; width:100%;height:100%;cursor:pointer;
+}
+.photo-zone-preview {
+  position:absolute;inset:0; object-fit:cover; width:100%;height:100%; display:none; border-radius:14px;
+}
+.photo-zone.filled .photo-zone-preview { display:block; }
+.pz-overlay {
+  position:absolute;inset:0; background:rgba(6,15,7,.45);
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+}
+.photo-zone.filled .pz-overlay { display:flex; }
+.pz-icon {
+  width:52px;height:52px; border-radius:50%;
+  background:rgba(52,160,80,.1);
+  display:flex;align-items:center;justify-content:center;
+}
+.pz-icon svg { width:22px;height:22px;fill:rgba(82,183,136,.55); }
+.pz-label { font-size:13px; color:rgba(255,255,255,.3); text-align:center; letter-spacing:.3px; }
+.pz-change {
+  font-size:11px; letter-spacing:2px; text-transform:uppercase;
+  color:rgba(82,183,136,.8); background:rgba(82,183,136,.09);
+  border:1px solid rgba(82,183,136,.18); padding:7px 18px; border-radius:20px;
+  font-family:'Outfit',sans-serif;
+}
+
+/* Fields */
+.fg { margin-bottom:11px; }
+.fl {
+  font-size:9px; letter-spacing:3px; text-transform:uppercase;
+  color:rgba(201,168,76,.48); margin-bottom:6px; display:block;
+}
+.fi, .fs, .fta {
+  width:100%; background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07); border-radius:12px;
+  padding:13px 15px; color:#fff; font-family:'Outfit',sans-serif;
+  font-size:15px; font-weight:300; outline:none;
+  transition:border-color .3s, background .3s; -webkit-appearance:none;
+}
+.fi:focus, .fs:focus, .fta:focus {
+  border-color:rgba(82,183,136,.38); background:rgba(255,255,255,.055);
+}
+.fi::placeholder, .fta::placeholder { color:rgba(255,255,255,.16); }
+.fta { resize:none; height:76px; line-height:1.5; }
+.fs option { background:#0d2818; }
+.f2 { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:11px; }
+.f2 .fg { margin-bottom:0; }
+
+/* Submit */
+.sbtn {
+  display:block; width:100%; padding:17px; margin-top:18px;
+  background:linear-gradient(135deg,#1a4a2e,#2d6a4f);
+  border:none; border-radius:15px; color:#fff;
+  font-size:11px; letter-spacing:4px; text-transform:uppercase;
+  font-family:'Outfit',sans-serif; font-weight:400;
+  cursor:pointer; position:relative; overflow:hidden;
+  transition:opacity .3s,transform .2s;
+}
+.sbtn:active { opacity:.8; transform:scale(.99); }
+.sbtn.busy { opacity:.55; pointer-events:none; }
+.sbtn .btxt { transition:opacity .2s; }
+.sbtn .bspin { position:absolute;inset:0; display:none;align-items:center;justify-content:center; }
+.sbtn.busy .btxt { opacity:0; }
+.sbtn.busy .bspin { display:flex; }
+.spin {
+  width:19px;height:19px; border:2px solid rgba(255,255,255,.2);
+  border-top-color:#fff; border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Divider */
+.div { height:1px; background:rgba(255,255,255,.04); margin:28px 0; }
+
+/* Gallery */
+.gal-sec { padding:0 18px; }
+.gal-head {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+}
+.gal-label { font-size:9px; letter-spacing:4px; text-transform:uppercase; color:rgba(255,255,255,.22); }
+.gal-count {
+  background:rgba(82,183,136,.09); border:1px solid rgba(82,183,136,.14);
+  color:rgba(82,183,136,.65); padding:2px 10px; border-radius:20px; font-size:10px;
+}
+.gal-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.gi {
+  background:rgba(255,255,255,.025);
+  border:1px solid rgba(255,255,255,.05);
+  border-radius:15px; overflow:hidden;
+}
+.gi-img { width:100%; aspect-ratio:1; object-fit:cover; display:block; background:#0d2818; }
+.gi-body { padding:11px; }
+.gi-name {
+  font-family:'Cormorant Garamond',serif; font-size:16px;
+  color:#fff; font-weight:300; margin-bottom:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.gi-cat { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(82,183,136,.48); margin-bottom:3px; }
+.gi-price { font-size:12px; color:rgba(201,168,76,.6); margin-bottom:9px; }
+.delbtn {
+  width:100%; padding:7px;
+  background:rgba(180,40,40,.07); border:1px solid rgba(180,40,40,.14);
+  border-radius:8px; color:rgba(255,90,90,.55);
+  font-size:10px; letter-spacing:2px; text-transform:uppercase;
+  font-family:'Outfit',sans-serif; cursor:pointer; transition:all .2s;
+}
+.delbtn:active { background:rgba(180,40,40,.18); }
+
+.empty {
+  grid-column:1/-1; padding:44px 20px; text-align:center;
+}
+.empty svg { width:34px;height:34px; opacity:.07; fill:#52b788; margin:0 auto 8px;display:block; }
+.empty p { font-size:11px; color:rgba(255,255,255,.1); letter-spacing:1px; }
+
+/* Toast */
+.toast {
+  position:fixed; bottom:28px; left:50%;
+  transform:translateX(-50%) translateY(16px);
+  background:rgba(20,70,35,.96); backdrop-filter:blur(12px);
+  border:1px solid rgba(82,183,136,.18);
+  color:#fff; padding:13px 22px; border-radius:28px;
+  font-size:13px; letter-spacing:.3px;
+  opacity:0; transition:all .35s; z-index:9999; pointer-events:none; white-space:nowrap;
+}
+.toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast.err { background:rgba(100,20,20,.96); border-color:rgba(180,50,50,.2); }
+
+/* Confirm */
+.confirm-bg {
+  position:fixed; inset:0;
+  background:rgba(4,9,5,.8); backdrop-filter:blur(8px);
+  z-index:9990; display:none;
+  align-items:flex-end; justify-content:center; padding:16px;
+}
+.confirm-bg.on { display:flex; }
+.confirm-sheet {
+  background:#0d2818; border:1px solid rgba(255,255,255,.06);
+  border-radius:20px; padding:26px 22px; width:100%; max-width:400px;
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp { from { transform:translateY(36px);opacity:0; } }
+.cs-title { font-family:'Cormorant Garamond',serif; font-size:22px; color:#fff; margin-bottom:7px; }
+.cs-text { font-size:13px; color:rgba(255,255,255,.35); line-height:1.6; margin-bottom:22px; }
+.cs-btns { display:flex; gap:9px; }
+.cs-cancel {
+  flex:1; padding:13px; background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07); border-radius:12px;
+  color:rgba(255,255,255,.4); font-family:'Outfit',sans-serif;
+  font-size:11px; letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+}
+.cs-del {
+  flex:1; padding:13px; background:rgba(180,40,40,.1);
+  border:1px solid rgba(180,40,40,.18); border-radius:12px;
+  color:rgba(255,90,90,.75); font-family:'Outfit',sans-serif;
+  font-size:11px; letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="confirm-bg" id="confirmBg">
+  <div class="confirm-sheet">
+    <div class="cs-title">Удалить?</div>
+    <div class="cs-text">Фото и данные будут удалены с сервера. Это действие нельзя отменить.</div>
+    <div class="cs-btns">
+      <button class="cs-cancel" onclick="closeConfirm()">Отмена</button>
+      <button class="cs-del" id="confirmDelBtn">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="h-left">
+    <div class="h-logo">Shar<span>bat</span></div>
+    <div class="h-sub">Admin Panel</div>
+  </div>
+  <a href="/" class="h-back">
+    <div class="h-back-icon">←</div>
+    Сайт
+  </a>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('menu',this)">Меню</button>
+  <button class="tab" onclick="switchTab('terrace',this)">Терраса</button>
+</div>
+
+<!-- ══ MENU PANE ══ -->
+<div id="pane-menu" class="pane active">
+  <div class="form">
+    <div class="f-title">Добавить блюдо</div>
+    <div class="f-sub">Фото · название · описание · цена</div>
+
+    <div class="photo-zone" id="mPhotoZone">
+      <input type="file" accept="image/*" id="mPhotoInput" onchange="previewPh('m')">
+      <div class="pz-icon"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>
+      <div class="pz-label">Нажмите чтобы выбрать фото</div>
+      <img class="photo-zone-preview" id="mPreview" src="" alt="">
+      <div class="pz-overlay"><div class="pz-change">Изменить фото</div></div>
+    </div>
+
+    <div class="f2">
+      <div class="fg"><label class="fl">Название RU</label><input class="fi" id="mNameRu" placeholder="Плов" type="text"></div>
+      <div class="fg"><label class="fl">Name EN</label><input class="fi" id="mNameEn" placeholder="Plov" type="text"></div>
+    </div>
+    <div class="fg"><label class="fl">Описание RU</label><textarea class="fta" id="mDescRu" placeholder="Традиционный рис с бараниной…"></textarea></div>
+    <div class="fg"><label class="fl">Description EN</label><textarea class="fta" id="mDescEn" placeholder="Traditional rice with lamb…"></textarea></div>
+    <div class="f2">
+      <div class="fg"><label class="fl">Цена</label><input class="fi" id="mPrice" placeholder="75 TJS" type="text"></div>
+      <div class="fg">
+        <label class="fl">Категория</label>
+        <select class="fs" id="mCat">
+          <option value="cold">Закуски</option>
+          <option value="soup">Супы</option>
+          <option value="main" selected>Основные</option>
+          <option value="grill">Гриль</option>
+          <option value="salad">Салаты</option>
+          <option value="dessert">Десерты</option>
+          <option value="drinks">Напитки</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="sbtn" id="mBtn" onclick="submitMenu()">
+      <span class="btxt">Добавить в меню</span>
+      <div class="bspin"><div class="spin"></div></div>
+    </button>
+  </div>
+
+  <div class="div"></div>
+
+  <div class="gal-sec">
+    <div class="gal-head">
+      <span class="gal-label">Добавленные блюда</span>
+      <span class="gal-count" id="mCount">0</span>
+    </div>
+    <div class="gal-grid" id="mGallery">
+      <div class="empty" style="grid-column:1/-1"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg><p>Пока пусто</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TERRACE PANE ══ -->
+<div id="pane-terrace" class="pane">
+  <div class="form">
+    <div class="f-title">Фото террасы</div>
+    <div class="f-sub">Добавьте фотографии с подписями</div>
+
+    <div class="photo-zone" id="tPhotoZone">
+      <input type="file" accept="image/*" id="tPhotoInput" onchange="previewPh('t')">
+      <div class="pz-icon"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>
+      <div class="pz-label">Нажмите чтобы выбрать фото</div>
+      <img class="photo-zone-preview" id="tPreview" src="" alt="">
+      <div class="pz-overlay"><div class="pz-change">Изменить фото</div></div>
+    </div>
+
+    <div class="f2">
+      <div class="fg"><label class="fl">Подпись RU</label><input class="fi" id="tNameRu" placeholder="Вечерняя терраса" type="text"></div>
+      <div class="fg"><label class="fl">Caption EN</label><input class="fi" id="tNameEn" placeholder="Evening terrace" type="text"></div>
+    </div>
+
+    <button class="sbtn" id="tBtn" onclick="submitTerrace()">
+      <span class="btxt">Добавить фото</span>
+      <div class="bspin"><div class="spin"></div></div>
+    </button>
+  </div>
+
+  <div class="div"></div>
+
+  <div class="gal-sec">
+    <div class="gal-head">
+      <span class="gal-label">Фото галерея</span>
+      <span class="gal-count" id="tCount">0</span>
+    </div>
+    <div class="gal-grid" id="tGallery">
+      <div class="empty" style="grid-column:1/-1"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg><p>Пока пусто</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const catRu = { cold:'Закуски',soup:'Супы',main:'Основные',grill:'Гриль',salad:'Салаты',dessert:'Десерты',drinks:'Напитки' };
+
+// Tabs
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('pane-' + name).classList.add('active');
+}
+
+// Preview
+function previewPh(p) {
+  const input   = document.getElementById(p + 'PhotoInput');
+  const zone    = document.getElementById(p + 'PhotoZone');
+  const preview = document.getElementById(p + 'Preview');
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => { preview.src = e.target.result; zone.classList.add('filled'); };
+  reader.readAsDataURL(input.files[0]);
+}
+
+// Submit menu
+async function submitMenu() {
+  const nameRu = document.getElementById('mNameRu').value.trim();
+  const nameEn = document.getElementById('mNameEn').value.trim();
+  const photo  = document.getElementById('mPhotoInput').files[0];
+  if (!nameRu && !nameEn) return toast('Введите название блюда', true);
+  if (!photo) return toast('Выберите фотографию', true);
+
+  const fd = new FormData();
+  fd.append('photo', photo);
+  fd.append('nameRu', nameRu);
+  fd.append('nameEn', nameEn);
+  fd.append('descRu', document.getElementById('mDescRu').value.trim());
+  fd.append('descEn', document.getElementById('mDescEn').value.trim());
+  fd.append('price',  document.getElementById('mPrice').value.trim());
+  fd.append('category', document.getElementById('mCat').value);
+
+  const btn = document.getElementById('mBtn');
+  btn.classList.add('busy');
+  try {
+    const r = await fetch('/api/items?type=menu', { method:'POST', body:fd });
+    if (!r.ok) throw 0;
+    toast('Блюдо добавлено ✓');
+    resetForm('m');
+    loadGallery('menu');
+  } catch { toast('Ошибка сохранения', true); }
+  finally { btn.classList.remove('busy'); }
+}
+
+// Submit terrace
+async function submitTerrace() {
+  const photo = document.getElementById('tPhotoInput').files[0];
+  if (!photo) return toast('Выберите фотографию', true);
+
+  const fd = new FormData();
+  fd.append('photo', photo);
+  fd.append('nameRu', document.getElementById('tNameRu').value.trim() || 'Терраса');
+  fd.append('nameEn', document.getElementById('tNameEn').value.trim() || 'Terrace');
+
+  const btn = document.getElementById('tBtn');
+  btn.classList.add('busy');
+  try {
+    const r = await fetch('/api/items?type=terrace', { method:'POST', body:fd });
+    if (!r.ok) throw 0;
+    toast('Фото добавлено ✓');
+    resetForm('t');
+    loadGallery('terrace');
+  } catch { toast('Ошибка сохранения', true); }
+  finally { btn.classList.remove('busy'); }
+}
+
+// Reset
+function resetForm(p) {
+  const input = document.getElementById(p + 'PhotoInput');
+  const zone  = document.getElementById(p + 'PhotoZone');
+  const prev  = document.getElementById(p + 'Preview');
+  input.value = ''; prev.src = ''; zone.classList.remove('filled');
+  if (p === 'm') {
+    ['mNameRu','mNameEn','mDescRu','mDescEn','mPrice'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mCat').value = 'main';
+  } else {
+    ['tNameRu','tNameEn'].forEach(id => document.getElementById(id).value = '');
+  }
+}
+
+// Gallery
+async function loadGallery(type) {
+  try {
+    const items = await (await fetch('/api/items?type=' + type)).json();
+    renderGallery(type, items);
+  } catch { renderGallery(type, []); }
+}
+
+function renderGallery(type, items) {
+  const isMenu = type === 'menu';
+  const grid   = document.getElementById(isMenu ? 'mGallery' : 'tGallery');
+  const count  = document.getElementById(isMenu ? 'mCount' : 'tCount');
+  count.textContent = items.length;
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg><p>Пока пусто</p></div>`;
+    return;
+  }
+  grid.innerHTML = items.map(item => {
+    const name = item.nameRu || item.nameEn || '—';
+    const cat  = catRu[item.category] || '';
+    return `<div class="gi">
+      ${item.photo ? `<img class="gi-img" src="${item.photo}" alt="${name}" loading="lazy">` : ''}
+      <div class="gi-body">
+        <div class="gi-name">${name}</div>
+        ${isMenu && cat ? `<div class="gi-cat">${cat}</div>` : ''}
+        ${item.price ? `<div class="gi-price">${item.price}</div>` : ''}
+        <button class="delbtn" onclick="askDelete('${item.id}','${type}')">Удалить</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Delete
+let pendingDel = null;
+function askDelete(id, type) { pendingDel = { id, type }; document.getElementById('confirmBg').classList.add('on'); }
+function closeConfirm() { document.getElementById('confirmBg').classList.remove('on'); pendingDel = null; }
+document.getElementById('confirmDelBtn').onclick = async function() {
+  if (!pendingDel) return;
+  const { id, type } = pendingDel;
+  closeConfirm();
+  try {
+    await fetch(`/api/items/${id}?type=${type}`, { method:'DELETE' });
+    toast('Удалено ✓');
+    loadGallery(type);
+  } catch { toast('Ошибка удаления', true); }
+};
+
+// Toast
+function toast(msg, err = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast on' + (err ? ' err' : '');
+  setTimeout(() => el.className = 'toast', 3000);
+}
+
+// Init
+loadGallery('menu');
+loadGallery('terrace');
+</script>
+</body>
+</html>
