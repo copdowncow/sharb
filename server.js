@@ -3,9 +3,7 @@ const fs   = require('fs');
 const path = require('path');
 const { randomBytes } = require('crypto');
 
-// 🔥 ВАЖНО: порт для Railway
-const PORT      = process.env.PORT || 8080;
-
+const PORT      = 8080;
 const ROOT      = __dirname;
 const DATA_FILE = path.join(ROOT, 'data.json');
 const UPLOADS   = path.join(ROOT, 'uploads');
@@ -35,7 +33,8 @@ function sendFile(res, fp) {
   fs.createReadStream(fp).pipe(res);
 }
 
-function sendJSON(res, data, status = 200) {
+function sendJSON(res, data, status) {
+  status = status || 200;
   const body = JSON.stringify(data);
   res.writeHead(status, {
     'Content-Type': 'application/json',
@@ -45,12 +44,12 @@ function sendJSON(res, data, status = 200) {
   res.end(body);
 }
 
-// ── Multipart parser ─────────────────────────
-function indexOf(buf, needle, from = 0) {
-  outer: for (let i = from; i <= buf.length - needle.length; i++) {
-    for (let j = 0; j < needle.length; j++) {
-      if (buf[i + j] !== needle[j]) continue outer;
-    }
+// ── Multipart parser ──────────────────────────────────────────────────────
+function indexOf(buf, needle, from) {
+  from = from || 0;
+  const bl = buf.length, nl = needle.length;
+  outer: for (let i = from; i <= bl - nl; i++) {
+    for (let j = 0; j < nl; j++) if (buf[i+j] !== needle[j]) continue outer;
     return i;
   }
   return -1;
@@ -59,27 +58,32 @@ function indexOf(buf, needle, from = 0) {
 function parseMultipart(req, done) {
   const chunks = [];
   req.on('data', c => chunks.push(c));
+  req.on('error', e => done(e, null, null));
   req.on('end', () => {
     try {
       const body = Buffer.concat(chunks);
       const ct   = req.headers['content-type'] || '';
 
+      // boundary can be quoted or bare
       const bm = ct.match(/boundary=(?:"([^"]+)"|([^\s;,]+))/i);
       if (!bm) return done(new Error('No boundary'), null, null);
-
       const boundary = (bm[1] || bm[2]).trim();
-      const CRLFCRLF = Buffer.from('\r\n\r\n');
+
+      const CRLF       = Buffer.from('\r\n');
+      const CRLFCRLF   = Buffer.from('\r\n\r\n');
       const delimStart = Buffer.from('--' + boundary + '\r\n');
-      const delim = Buffer.from('\r\n--' + boundary);
+      const delim      = Buffer.from('\r\n--' + boundary);
 
       const fields = {};
       let fileBuf = null, fileName = null, fileMime = 'application/octet-stream';
 
+      // find start of first part
       let pos = indexOf(body, delimStart);
-      if (pos === -1) return done(new Error('Boundary not found'), null, null);
+      if (pos === -1) return done(new Error('First boundary not found'), null, null);
       pos += delimStart.length;
 
       while (pos < body.length) {
+        // find end of this part (next delimiter)
         let partEnd = indexOf(body, delim, pos);
         if (partEnd === -1) partEnd = body.length;
 
@@ -88,16 +92,17 @@ function parseMultipart(req, done) {
         if (hdrEnd === -1) break;
 
         const hdrStr  = part.slice(0, hdrEnd).toString('latin1');
-        let content = part.slice(hdrEnd + 4);
+        let   content = part.slice(hdrEnd + 4);
 
+        // trim trailing \r\n from content
         if (content.length >= 2 &&
             content[content.length - 2] === 13 &&
             content[content.length - 1] === 10) {
           content = content.slice(0, -2);
         }
 
-        const dMatch = hdrStr.match(/name="([^"]+)"/);
-        const fMatch = hdrStr.match(/filename="([^"]*)"/);
+        const dMatch = hdrStr.match(/Content-Disposition:[^\r\n]*name="([^"]+)"/i);
+        const fMatch = hdrStr.match(/filename="([^"]*)"/i);
         const cMatch = hdrStr.match(/Content-Type:\s*([^\r\n]+)/i);
 
         if (dMatch) {
@@ -111,80 +116,140 @@ function parseMultipart(req, done) {
         }
 
         pos = partEnd + delim.length;
-        if (body[pos] === 45 && body[pos+1] === 45) break;
-        pos += 2;
+        if (pos >= body.length) break;
+        if (body[pos] === 45 && body[pos+1] === 45) break; // '--' = end
+        pos += 2; // skip \r\n between parts
       }
 
       done(null, fields, fileBuf ? { data: fileBuf, name: fileName, mime: fileMime } : null);
     } catch (e) {
+      console.error('[multipart] error:', e.message);
       done(e, null, null);
     }
   });
 }
 
-// ── Request handler ─────────────────────────
+// ── Request handler ───────────────────────────────────────────────────────
 function handle(req, res) {
-  const u = new URL(req.url, 'http://localhost');
-  const pathname = u.pathname;
-  const method = req.method;
-  const type = u.searchParams.get('type') || 'menu';
-
-  // 🔥 тестовый корень (важно)
-  if (pathname === '/') {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    return res.end('<h1>Sharbat works 🚀</h1>');
+  // Safe URL parse
+  let pathname = '/';
+  let searchParams = new URLSearchParams();
+  try {
+    const u = new URL(req.url, 'http://localhost');
+    pathname     = u.pathname;
+    searchParams = u.searchParams;
+  } catch (e) {
+    res.writeHead(400); return res.end('Bad request');
   }
 
-  if (pathname === '/admin') {
+  const method = req.method || 'GET';
+  const type   = searchParams.get('type') || 'menu';
+
+  // CORS preflight
+  if (method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    });
+    return res.end();
+  }
+
+  // Pages
+  if (pathname === '/' || pathname === '/index.html') {
+    return sendFile(res, path.join(ROOT, 'index.html'));
+  }
+  if (pathname === '/admin' || pathname === '/admin.html') {
     return sendFile(res, path.join(ROOT, 'admin.html'));
   }
 
+  // Uploaded images
   if (pathname.startsWith('/uploads/')) {
-    return sendFile(res, path.join(UPLOADS, path.basename(pathname)));
+    const safe = path.basename(pathname); // prevent path traversal
+    return sendFile(res, path.join(UPLOADS, safe));
   }
 
+  // GET /api/items
   if (method === 'GET' && pathname === '/api/items') {
     return sendJSON(res, readData()[type] || []);
   }
 
+  // POST /api/items
   if (method === 'POST' && pathname === '/api/items') {
     return parseMultipart(req, (err, fields, file) => {
-      if (err) return sendJSON(res, { error: err.message }, 400);
-
-      const data = readData();
-      const id   = randomBytes(8).toString('hex');
-
-      let photoUrl = null;
-      if (file) {
-        const ext  = path.extname(file.name || '') || '.jpg';
-        const name = id + ext;
-        fs.writeFileSync(path.join(UPLOADS, name), file.data);
-        photoUrl = '/uploads/' + name;
+      if (err) {
+        console.error('[POST] parse error:', err.message);
+        return sendJSON(res, { error: err.message }, 400);
       }
 
-      const item = {
-        id,
-        nameRu: fields.nameRu || '',
-        nameEn: fields.nameEn || '',
-        descRu: fields.descRu || '',
-        descEn: fields.descEn || '',
-        price:  fields.price || '',
-        category: fields.category || 'main',
-        photo: photoUrl,
-        createdAt: new Date().toISOString(),
-      };
+      try {
+        const data = readData();
+        const id   = randomBytes(8).toString('hex');
+        let   photoUrl = null;
 
-      data[type].unshift(item);
-      saveData(data);
-      return sendJSON(res, item, 201);
+        if (file && file.data && file.data.length > 0) {
+          const ext  = (path.extname(file.name || '') || '.jpg').toLowerCase();
+          const name = id + ext;
+          fs.writeFileSync(path.join(UPLOADS, name), file.data);
+          photoUrl = '/uploads/' + name;
+          console.log('[+] photo:', name, file.data.length + 'b');
+        }
+
+        const item = {
+          id,
+          nameRu:    (fields.nameRu   || '').trim(),
+          nameEn:    (fields.nameEn   || '').trim(),
+          descRu:    (fields.descRu   || '').trim(),
+          descEn:    (fields.descEn   || '').trim(),
+          price:     (fields.price    || '').trim(),
+          category:  (fields.category || 'main').trim(),
+          photo:     photoUrl,
+          createdAt: new Date().toISOString(),
+        };
+
+        if (!data[type]) data[type] = [];
+        data[type].unshift(item);
+        saveData(data);
+        console.log('[+] added:', item.nameRu || item.nameEn || id, '→', type);
+        return sendJSON(res, item, 201);
+      } catch (e) {
+        console.error('[POST] save error:', e.message);
+        return sendJSON(res, { error: e.message }, 500);
+      }
     });
   }
 
-  res.writeHead(404);
-  res.end('Not found');
+  // DELETE /api/items/:id
+  if (method === 'DELETE' && pathname.startsWith('/api/items/')) {
+    try {
+      const id   = path.basename(pathname);
+      const data = readData();
+      const arr  = data[type] || [];
+      const item = arr.find(i => i.id === id);
+      if (item && item.photo) {
+        const fp = path.join(UPLOADS, path.basename(item.photo));
+        if (fs.existsSync(fp)) fs.unlinkSync(fp);
+      }
+      data[type] = arr.filter(i => i.id !== id);
+      saveData(data);
+      console.log('[-] deleted:', id);
+      return sendJSON(res, { ok: true });
+    } catch (e) {
+      return sendJSON(res, { error: e.message }, 500);
+    }
+  }
+
+  res.writeHead(404); res.end('Not found');
 }
 
-// 🚀 запуск
-http.createServer(handle).listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+http.createServer((req, res) => {
+  try {
+    handle(req, res);
+  } catch (e) {
+    console.error('[server] unhandled error:', e.message);
+    try { res.writeHead(500); res.end('Server error'); } catch (_) {}
+  }
+}).listen(PORT, () => {
+  console.log('\n  ✦  Sharbat  →  http://localhost:' + PORT);
+  console.log('  ✦  Admin   →  http://localhost:' + PORT + '/admin\n');
 });
